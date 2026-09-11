@@ -30,7 +30,12 @@ import json
 import os
 
 DATASOURCE = "${redis}"
-GROUP = "redis-datasource"
+# The datasource plugin id, which schema v2 calls the query "group". It is also
+# what the Redis node variable filters the datasource picker by, below. The fork
+# renamed it from upstream's `redis-datasource` so that the first segment matches
+# the Axiumine organisation, which is what Grafana's signing and catalogue
+# submission both require.
+GROUP = "axiumine-redis-datasource"
 STREAM_INTERVAL = 1000
 STREAM_CAPACITY = 1000
 
@@ -920,7 +925,7 @@ VARIABLES = [
             "description": "One entry per provisioned Redis Data Source, so a cluster is browsed node by node.",
             "hide": "dontHide",
             "skipUrlSync": False,
-            "pluginId": "redis-datasource",
+            "pluginId": GROUP,
             "regex": "",
             "refresh": "onDashboardLoad",
             "current": {"text": "", "value": ""},

@@ -10,8 +10,9 @@ tools/build_dashboard.py        the generator
 
 Requirements: Grafana 12.x, Redis 8.x, and
 [Axiumine/grafana-redis-datasource](https://github.com/Axiumine/grafana-redis-datasource)
-2.3.0. The stock `redis-datasource` 2.2.1 from the catalogue will render only part
-of the dashboard — see [The plugin](#the-plugin) below.
+3.0.0. The stock `redis-datasource` 2.2.1 from the catalogue will render only part
+of the dashboard, and 2.3.0 of the fork still registers under that same old id —
+see [The plugin](#the-plugin) below.
 
 ## Audit of the previous dashboard
 
@@ -85,7 +86,7 @@ shape repeats the id inside the spec:
 *Other* rows carry `repeat: {mode: variable, value: redis}` while `spec.variables` is
 `[]`. The dashboard has no datasource picker at all: each panel is pinned to whatever
 datasource the export labels resolved to. The new dashboard declares a
-`DatasourceVariable` named `redis` (`pluginId: redis-datasource`) and every query
+`DatasourceVariable` named `redis` (`pluginId: axiumine-redis-datasource`) and every query
 references it, so the node is switchable from the picker. That covers the
 one-datasource-per-node workaround described in upstream issue #335, though not its
 actual ask — seeing every node at once, which needs a multi-value variable and row
@@ -172,7 +173,7 @@ current `metadata.resourceVersion`.
 ## The plugin
 
 The dashboard needs [Axiumine/grafana-redis-datasource](https://github.com/Axiumine/grafana-redis-datasource)
-2.3.0, a fork of `RedisGrafana/grafana-redis-datasource` 2.2.1, whose last release
+3.0.0, a fork of `RedisGrafana/grafana-redis-datasource` 2.2.1, whose last release
 predates Redis 8. In short, the fork adds:
 
 - `SLOWLOG GET` **Arg Count** (Redis 8.10) and a **Truncated** flag
@@ -182,10 +183,24 @@ predates Redis 8. In short, the fork adds:
 - a time field on streamed replies, which is what makes streamed `INFO` plottable
 - `CLUSTER NODES` slot, hostname and timestamp fixes
 
-Full list in the fork's `CHANGELOG.md`, entry 2.3.0. The plugin id is unchanged
-(`redis-datasource`), so it drops in over the catalogue build. The local build is
-unsigned, so Grafana needs
-`GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=redis-datasource`.
+Full list in the fork's `CHANGELOG.md`, entries 2.3.0 and 3.0.0.
+
+The plugin id changed in 3.0.0, from upstream's `redis-datasource` to
+`axiumine-redis-datasource`, so the fork no longer drops in over the catalogue build.
+Grafana's signing service checks that the first segment of the id matches the
+organisation that issued the signing token, and its catalogue enforces the same
+`<organisation>-<name>-<type>` shape, so an id of `redis-datasource` can be signed by
+RedisGrafana and by nobody else. A fork that wants a signature anyone can install has
+to carry its own id. The cost is that dashboards written against the old id do not
+find the new datasource: `type` and `group` both name the plugin, and both have to be
+updated. This dashboard is generated, so for it that is one constant in
+`tools/build_dashboard.py`.
+
+An unsigned local build additionally needs
+`GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=axiumine-redis-datasource`. That setting
+covers unsigned plugins only — a *signed* build whose `rootUrls` do not match the
+instance's `root_url` is rejected as invalid instead, and no setting waves it
+through.
 
 ### Provisioning
 
@@ -197,7 +212,7 @@ apiVersion: 1
 datasources:
   - name: Redis db1
     uid: redis-db1
-    type: redis-datasource
+    type: axiumine-redis-datasource
     access: proxy
     url: redis://db1:6379
     jsonData: { client: standalone, poolSize: 5, timeout: 10, acl: true, user: grafana }
