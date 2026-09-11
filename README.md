@@ -8,7 +8,7 @@ dashboard.json                  generated, do not edit by hand
 tools/build_dashboard.py        the generator
 ```
 
-Requirements: Grafana 12.x, Redis 8.x, and
+Requirements: Grafana 12.x or 13.x, Redis 8.x, and
 [Axiumine/grafana-redis-datasource](https://github.com/Axiumine/grafana-redis-datasource)
 3.0.0. The stock `redis-datasource` 2.2.1 from the catalogue will render only part
 of the dashboard, and 2.3.0 of the fork still registers under that same old id —
@@ -170,6 +170,12 @@ The script has no dependencies. Import `dashboard.json` through
 `/apis/dashboard.grafana.app/v2beta1/namespaces/default/dashboards/<uid>` with a
 current `metadata.resourceVersion`.
 
+Grafana 13.2 promoted the dashboard API to a stable `v2`, and still serves
+`v2beta1` beside it: `v2`, `v2beta1`, `v2alpha1`, `v1`, `v1beta1` and `v0alpha1`
+are all available, and asking 13.2 to convert this dashboard from `v2beta1` to
+`v2` reports no failure. `v2beta1` is what the generator writes, because it is
+the newest version Grafana 12 understands and the file has to import on both.
+
 ## The plugin
 
 The dashboard needs [Axiumine/grafana-redis-datasource](https://github.com/Axiumine/grafana-redis-datasource)
@@ -234,8 +240,25 @@ Add `+hotkeys|get` (`@admin`, `@dangerous`) only if you want the hot keys row.
 ## Verified against
 
 Redis 8.10.1, three nodes in cluster mode, and a standalone 8.10 container; Grafana
-12.2.0. Every row was checked in a browser against both, including the failure modes
-listed above.
+12.2.0 and 13.2.1. Every row was checked in a browser against both, including the
+failure modes listed above.
+
+On 13.2.1 the dashboard was also exercised through all three client configurations
+of the datasource — cluster client, a single cluster node addressed as a standalone
+server, and the standalone container — with every row expanded. The only panel that
+reports an error is *Cluster state* against the standalone container, which is the
+`CLUSTER INFO` failure mode described above.
+
+Reaching that point needed a fix in the plugin, released in its 3.0.0: Grafana 13
+releases the buffers of frames it has stopped rendering by assigning
+`values.length = 0`, and recognises the streaming frames it must leave alone by the
+`appendRow` method a `CircularDataFrame` carries. A panel transformation rebuilds
+the frame as a plain object, so that recognition was lost while the fields still
+pointed at the circular buffers, whose `length` is read-only — and the resulting
+`TypeError` escaped into React and replaced the whole dashboard with *Page error*.
+Thirty-five of the 67 panels here both stream and transform, so it took the page
+down on every load. Plugin 3.0.0 hands out a detached copy of the buffer; against
+an earlier build of the fork, this dashboard does not render on Grafana 13.
 
 ## Licence
 
