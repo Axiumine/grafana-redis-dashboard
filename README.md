@@ -3,6 +3,12 @@
 A Grafana dashboard covering Redis 8.x, generated from a Python script. 67 panels
 in 10 rows, written in schema **v2beta1** (`dashboard.grafana.app/v2beta1`).
 
+![The Overview and Memory rows, on a three-node Redis 8.10.1 cluster](screenshoots/1.png)
+
+That is the top of it. The whole dashboard is in
+[`screenshoots/`](screenshoots/), eight images scrolling from the Overview row down to
+the collapsed Hot keys row.
+
 ```
 dashboard.json                  generated, do not edit by hand
 tools/build_dashboard.py        the generator
