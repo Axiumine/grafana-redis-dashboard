@@ -36,7 +36,15 @@ DATASOURCE = "${redis}"
 # the Axiumine organisation, which is what Grafana's signing and catalogue
 # submission both require.
 GROUP = "axiumine-redis-datasource"
-STREAM_INTERVAL = 1000
+# The streaming poll interval, in milliseconds. Zero is not "as fast as
+# possible" but a setting of its own, added in the plugin fork's 3.0.0: the
+# datasource starts no timer and reads once per subscription, and since Grafana
+# resubscribes on every dashboard refresh the panels then advance at whatever
+# the refresh picker says while still accumulating a series. A fixed interval
+# here would override the picker instead, which is what the panels did until
+# now: set to 1000 they redrew once a second whatever the user had chosen, and
+# the picker could only make them faster, never slower.
+STREAM_INTERVAL = 0
 STREAM_CAPACITY = 1000
 
 elements = {}

@@ -144,6 +144,26 @@ rather than lying: the cluster row on a standalone server, the search row withou
 query engine, the hot keys row before `HOTKEYS START`. Each of those panels says so in
 its description, and the two text panels explain the setup.
 
+### Refresh and streaming
+
+The 35 time series panels stream: the datasource keeps a rolling buffer per query
+rather than a single reply, which is what lets an `INFO` counter be charted over time
+at all. Streaming used to poll on an interval of its own, and that interval replaced
+the dashboard refresh rather than following it — at the 1000ms this generator wrote
+until now, the panels redrew once a second whatever the refresh picker said, and the
+picker could only make them faster, never slower.
+
+The generator now writes `streamingInterval: 0`, a setting the plugin fork added in
+its 3.0.0. It starts no timer and reads once per subscription, and since Grafana
+resubscribes on every dashboard refresh, the panels advance at exactly the rate the
+picker is set to, and stand still when it is off. The buffer survives that
+resubscription, so the series still accumulates; switching streaming off instead would
+not do, because a reply carrying one sample and no time field is not a series.
+
+`timeSettings.autoRefresh` therefore matters now, and ships at `5s` against a `now-15m`
+window. `streamingCapacity` stays at 1000 samples per query, which is the depth of
+history a panel can show before the oldest point falls out of the buffer.
+
 ### `search_*` field names
 
 They do vary between builds, so the panels were built against the real node
